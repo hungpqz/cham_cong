@@ -13,3 +13,6 @@ doc_events = {}
 override_whitelisted_methods = {
     "/api/method/cham_cong.api.cham_cong_handler": "cham_cong.api.cham_cong_handler"
 }
+override_whitelisted_methods = {
+    "cham_cong.api.webhook.hikvision_webhook": "cham_cong.api.webhook.hikvision_webhook"
+}
