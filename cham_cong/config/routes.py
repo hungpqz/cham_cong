@@ -1,8 +1,7 @@
-
 routes = [
     {
         "method": "POST",
-        "path": "/api/cham-cong",
-        "handler": "cham_cong.api.cham_cong_handler"
+        "path": "/cham-cong",  # Đây là URL rút gọn bạn muốn
+        "handler": "cham_cong.api.webhook.hikvision_webhook"
     }
 ]
