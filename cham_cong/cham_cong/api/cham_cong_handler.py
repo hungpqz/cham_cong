@@ -1,4 +1,3 @@
-
 import frappe
 from frappe.utils import get_datetime
 
@@ -15,8 +14,12 @@ def cham_cong_handler():
 
         employee_id = nested_event.get("employeeNoString")
         full_name = nested_event.get("name")
-        datetime_str = event.get("dateTime")
-        datetime_obj = get_datetime(datetime_str)
+
+        from dateutil import parser
+
+        date_time_raw = event.get("dateTime")
+        parsed_dt = parser.parse(date_time_raw)
+        datetime_obj = parsed_dt.replace(tzinfo=None)  # ← Không timezone
         date_only = datetime_obj.date()
 
         existing_record = frappe.get_all(
@@ -35,6 +38,9 @@ def cham_cong_handler():
             doc.check_in_time = datetime_obj
             doc.date = date_only
             doc.insert(ignore_permissions=True)
+            
+            frappe.logger().info(f"datetime_obj = {datetime_obj}, tzinfo = {datetime_obj.tzinfo}")
+            
             frappe.db.commit()
             return {"status": "success", "message": "Check-in recorded."}
         else:
@@ -42,9 +48,25 @@ def cham_cong_handler():
             doc = frappe.get_doc("Cham Cong", record_name)
             doc.check_out_time = datetime_obj
             doc.save(ignore_permissions=True)
+            frappe.logger().info(f"datetime_obj = {datetime_obj}, tzinfo = {datetime_obj.tzinfo}")
             frappe.db.commit()
             return {"status": "success", "message": "Check-out updated."}
 
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Cham Cong Error")
-        return {"status": "error", "message": str(e)}
+        from frappe.utils import now
+        frappe.log_error(
+            title="Cham Cong Error",
+            message=(
+                f"[{now()}] Error occurred in cham_cong_handler:\n"
+                f"{frappe.get_traceback()}\n\n"
+                f"datetime_obj: {str(datetime_obj) if 'datetime_obj' in locals() else 'N/A'}\n"
+                f"tzinfo: {datetime_obj.tzinfo if 'datetime_obj' in locals() else 'N/A'}"
+            )
+        )
+        return {
+            "status": "error",
+            "message": f"{str(e)}",
+            "debug_datetime": str(datetime_obj) if 'datetime_obj' in locals() else "N/A",
+            "tzinfo": str(datetime_obj.tzinfo) if 'datetime_obj' in locals() else "N/A"
+        }
+
