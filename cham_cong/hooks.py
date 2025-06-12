@@ -16,3 +16,6 @@ override_whitelisted_methods = {
 override_whitelisted_methods = {
     "cham_cong.api.webhook.hikvision_webhook": "cham_cong.api.webhook.hikvision_webhook"
 }
+
+# Để Frappe biết routes custom ở đâu
+website_routes = "cham_cong.config.routes"
