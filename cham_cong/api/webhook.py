@@ -7,32 +7,35 @@ def hikvision_webhook():
     try:
         from dateutil import parser
 
-        content_type = frappe.request.content_type
-        data = {}
+        event = {}
+        sub_event = {}
 
-        # Lấy dữ liệu từ request
-        if "application/json" in content_type:
-            data = frappe.request.get_json()
-        elif "multipart/form-data" in content_type:
-            form_data = frappe.form_dict
-            if "AccessControllerEvent" in form_data and isinstance(form_data["AccessControllerEvent"], str):
-                data["AccessControllerEvent"] = json.loads(form_data["AccessControllerEvent"])
-            else:
-                data = form_data
-        else:
-            frappe.throw("Unsupported Content-Type")
-
-        # Trường hợp dữ liệu đến từ máy khác: dạng {"event_log": "{...}"}
-        if "event_log" in data and isinstance(data["event_log"], str):
+        # 1. Nếu là multipart/form-data và có event_log
+        if frappe.form_dict.get("event_log"):
             try:
-                event = json.loads(data["event_log"])
-            except json.JSONDecodeError:
+                event = json.loads(frappe.form_dict["event_log"])
+                sub_event = event.get("AccessControllerEvent", {})
+            except Exception:
                 return {"status": "error", "message": "Invalid JSON in event_log"}
+
+        # 2. Nếu là multipart/form-data với AccessControllerEvent (máy khác)
+        elif frappe.form_dict.get("AccessControllerEvent"):
+            try:
+                event = json.loads(frappe.form_dict["AccessControllerEvent"])
+                sub_event = event.get("AccessControllerEvent", {})
+            except Exception:
+                return {"status": "error", "message": "Invalid JSON in AccessControllerEvent"}
+
+        # 3. Nếu là application/json (POST raw body)
         else:
-            event = data.get("AccessControllerEvent", {})
+            try:
+                data = frappe.request.get_json()
+                event = data.get("AccessControllerEvent", {})
+                sub_event = event.get("AccessControllerEvent", {})
+            except Exception:
+                return {"status": "error", "message": "Cannot parse JSON"}
 
-        sub_event = event.get("AccessControllerEvent", {})
-
+        # Trích dữ liệu cần
         employee_id = (sub_event.get("employeeNoString") or "").strip()
         full_name = (sub_event.get("name") or "").strip()
         date_time_raw = (event.get("dateTime") or "").strip()
@@ -40,12 +43,10 @@ def hikvision_webhook():
         if not employee_id or not date_time_raw:
             return {"status": "ignored", "reason": "Missing employeeNoString or dateTime"}
 
-        # Parse datetime
         parsed_dt = parser.parse(date_time_raw)
         datetime_obj = parsed_dt.replace(tzinfo=None)
         date_only = datetime_obj.date()
 
-        # Kiểm tra bản ghi chấm công đã có chưa
         existing_record = frappe.get_all(
             "Cham Cong",
             filters={
@@ -72,5 +73,5 @@ def hikvision_webhook():
             return {"status": "success", "message": "Check-out updated"}
 
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Hikvision Webhook Error")
+        frappe.log_error(frappe.get_traceback(), "Cham Cong Webhook Error")
         return {"status": "error", "message": str(e)}
