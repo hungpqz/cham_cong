@@ -1,6 +1,6 @@
-## cham_cong
+## placement_test
 
-Cham_cong
+Placement Test integration app for Wellspring quiz results.
 
 #### License
 
