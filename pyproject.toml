@@ -1,9 +1,9 @@
 [project]
-name = "placement_test"
+name = "cham_cong"
 authors = [
     { name = "HungPQ", email = "hungpq@wellspringsaigon.edu.vn"}
 ]
-description = "Placement Test integration app"
+description = "Cham_cong"
 requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]
